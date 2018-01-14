@@ -86,8 +86,6 @@ namespace Template {
                     ph = UInt32.Parse(sub[3]);
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
-                    kernel.SetArgument(1, pattern);
-                    kernel.SetArgument(2, second);
                     kernel.SetArgument(3, pw);
                     kernel.SetArgument(4, ph);
                 }
@@ -133,16 +131,20 @@ namespace Template {
             timer.Restart();
             // run the simulation, 1 step
             kernel.SetArgument(0, buffer);
+            for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
+            kernel.SetArgument(1, pattern);
+            kernel.SetArgument(2, second);
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
             long[] workSize = { pw * 32, ph };
             //Simulate();
             kernel.Execute(workSize);
-            buffer.CopyFromDevice();
+            pattern.CopyFromDevice();
+            for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             // visualize current state
             screen.Clear(0);
             for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
-                    screen.Plot(x, y, buffer[x + y * 512]);
+                    if(GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
             // report performance
             Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
         }
