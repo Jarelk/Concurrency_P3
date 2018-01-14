@@ -15,6 +15,14 @@ __kernel void device_function( __global int* a, __global uint* pattern, __global
 	if(idx == 0 || idx == pw * 32 - 1 || idy == 0 || idy == ph - 1) return;
 	uint id = idx + pw * idy;
 
-	uint n = GetBit(idx - 1, idy - 1, pw, second) + GetBit(idx, idy - 1, pw, second) + GetBit(idx + 1, idy - 1, pw, second) + GetBit(idx - 1, idy, pw, second) + GetBit(idx + 1, idy, pw, second) + GetBit(idx - 1, idy + 1, pw, second) + GetBit(idx, idy + 1, pw, second) + GetBit(idx + 1, idy + 1, pw, second);
+	uint n = GetBit(idx - 1, idy - 1, pw, second) 
+	+ GetBit(idx, idy - 1, pw, second) 
+	+ GetBit(idx + 1, idy - 1, pw, second) 
+	+ GetBit(idx - 1, idy, pw, second) 
+	+ GetBit(idx + 1, idy, pw, second) 
+	+ GetBit(idx - 1, idy + 1, pw, second) 
+	+ GetBit(idx, idy + 1, pw, second) 
+	+ GetBit(idx + 1, idy + 1, pw, second);
+	a[idy * pw + idx] = n;
 	if ((GetBit(idx, idy, pw, second) == 1 && n == 2) || n == 3) BitSet(idx, idy, pw, pattern);
 }

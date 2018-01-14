@@ -249,6 +249,8 @@ namespace Template
         public void SetArgument(int i, ComputeBuffer<float> v) { kernel.SetMemoryArgument(i, v); }
         public void SetArgument(int i, ComputeBuffer<uint> v) { kernel.SetMemoryArgument(i, v); }
         public void SetArgument(int i, OpenCLBuffer<int> v) { kernel.SetMemoryArgument(i, v._gpubuffer); }
+        //for short
+        public void SetArgument(int i, OpenCLBuffer<short> v) { kernel.SetMemoryArgument(i, v._gpubuffer); }
         public void SetArgument(int i, OpenCLBuffer<float> v) { kernel.SetMemoryArgument(i, v._gpubuffer); }
         public void SetArgument(int i, OpenCLBuffer<uint> v) { kernel.SetMemoryArgument(i, v._gpubuffer); }
         public void SetArgument(int i, ComputeImage2D v) { kernel.SetMemoryArgument(i, v); }

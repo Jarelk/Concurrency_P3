@@ -24,7 +24,7 @@ namespace Template {
         OpenCLKernel kernel = new OpenCLKernel(ocl, "device_function");
 
         // create a regular buffer; by default this resides on both the host and the device
-        OpenCLBuffer<int> buffer = new OpenCLBuffer<int>(ocl, 512 * 512);
+        OpenCLBuffer<short> buffer;
         // create an OpenGL texture to which OpenCL can send data
         //OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
@@ -39,9 +39,21 @@ namespace Template {
         //uint[] second;
         uint pw, ph; // note: pw is in uints; width in bits is 32 this value.
                      // helper function for setting one bit in the pattern buffer
-        void BitSet(uint x, uint y) { pattern[y * pw + (x >> 5)] |= 1U << (int)(x & 31); }
+        void BitSet(uint x, uint y)
+        {
+            pattern[y * pw + (x >> 5)] |= 1U << (int)(x & 31);
+        }
         // helper function for getting one bit from the secondary pattern buffer
-        uint GetBit(uint x, uint y) { return (second[y * pw + (x >> 5)] >> (int)(x & 31)) & 1U; }
+        uint GetBit(uint x, uint y)
+        {
+            /*uint temp = x >> 5;
+            temp += (y * pw);
+            temp = second[temp];
+            int temp2 = (int)(x & 31);
+            temp >>= temp2;
+            temp &= 1U;*/
+            return (second[y * pw + (x >> 5)] >> (int)(x & 31)) & 1U;
+        }
 
         // mouse handling: dragging functionality
         uint xoffset = 0, yoffset = 0;
@@ -86,6 +98,7 @@ namespace Template {
                     ph = UInt32.Parse(sub[3]);
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
+                    buffer = new OpenCLBuffer<short>(ocl, 32 * pw * ph);
                     kernel.SetArgument(3, pw);
                     kernel.SetArgument(4, ph);
                 }
@@ -139,6 +152,12 @@ namespace Template {
             long[] workSize = { pw * 32, ph };
             //Simulate();
             kernel.Execute(workSize);
+            buffer.CopyFromDevice();
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                Console.Write(buffer[i] + ", ");
+            }
+            Console.WriteLine();
             pattern.CopyFromDevice();
             for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             // visualize current state
