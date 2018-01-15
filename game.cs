@@ -24,7 +24,7 @@ namespace Template {
         OpenCLKernel kernel = new OpenCLKernel(ocl, "device_function");
 
         // create a regular buffer; by default this resides on both the host and the device
-        OpenCLBuffer<int> buffer = new OpenCLBuffer<int>(ocl, 512 * 512);
+        OpenCLBuffer<uint> buffer;
         // create an OpenGL texture to which OpenCL can send data
         //OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
@@ -98,6 +98,7 @@ namespace Template {
                     ph = UInt32.Parse(sub[3]);
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
+                    buffer = new OpenCLBuffer<uint>(ocl, pw * ph);
                     kernel.SetArgument(3, pw);
                     kernel.SetArgument(4, ph);
                 }
@@ -147,8 +148,9 @@ namespace Template {
             // run the simulation, 1 step
             for (int i = 0; i < buffer.Length; i++) buffer[i] = 0;
             kernel.SetArgument(0, buffer);
-            //kernel.SetArgument(1, pattern);
-            //kernel.SetArgument(2, second);
+            kernel.SetArgument(1, pattern);
+            kernel.SetArgument(2, second);
+            second.CopyToDevice();
             buffer.CopyToDevice();
             //for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
             kernel.SetArgument(5, xoffset);
@@ -162,13 +164,13 @@ namespace Template {
                 Console.Write(buffer[i] + ", ");
             }
             Console.WriteLine();*/
-            //pattern.CopyFromDevice();
+            pattern.CopyFromDevice();
             //second.CopyFromDevice();
-            //for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
+            for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             // visualize current state
             screen.Clear(0);
             for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
-                    screen.Plot(x, y, buffer[x + y * 512]);
+                    if(GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
             // report performance
             Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
         }
