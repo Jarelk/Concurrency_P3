@@ -12,17 +12,28 @@ __kernel void device_function( __global int* a, __global uint* pattern, __global
 {
 	uint idx = get_global_id( 0 );
 	uint idy = get_global_id( 1 );
-	if(idx == 0 || idx == pw * 32 - 1 || idy == 0 || idy == ph - 1) return;
+	if(idy == 0 || idy == ph - 1) return;
+	pattern[idy * pw + idx] = 0;
 	uint id = idx + pw * idy;
 
-	uint n = GetBit(idx - 1, idy - 1, pw, second) 
-	+ GetBit(idx, idy - 1, pw, second) 
-	+ GetBit(idx + 1, idy - 1, pw, second) 
-	+ GetBit(idx - 1, idy, pw, second) 
-	+ GetBit(idx + 1, idy, pw, second) 
-	+ GetBit(idx - 1, idy + 1, pw, second) 
-	+ GetBit(idx, idy + 1, pw, second) 
-	+ GetBit(idx + 1, idy + 1, pw, second);
-	a[idy * pw + idx] = n;
-	if ((GetBit(idx, idy, pw, second) == 1 && n == 2) || n == 3) BitSet(idx, idy, pw, pattern);
+	for(int m = 0; m < 32; m++)
+	{
+		uint x = idx * pw + m;
+		uint y = idy;
+		if(x == 0 || x == pw * 32 - 1) return;
+		uint n = GetBit(x - 1, y - 1, pw, second) 
+		+ GetBit(x, y - 1, pw, second) 
+		+ GetBit(x + 1, y - 1, pw, second) 
+		+ GetBit(x - 1, y, pw, second) 
+		+ GetBit(x + 1, y, pw, second) 
+		+ GetBit(x - 1, y + 1, pw, second) 
+		+ GetBit(x, y + 1, pw, second) 
+		+ GetBit(x + 1, y + 1, pw, second);
+		if ((GetBit(x, y, pw, second) == 1 && n == 2) || n == 3)
+		{
+			BitSet(x, y, pw, pattern);
+			if((xoffset <= x) && (x < xoffset + 512) && (yoffset <= y) && (y < yoffset + 512)) a[(x - xoffset) + ((y - yoffset) * 512)] = 0xffffff;
+		}
+	}
+	second[idy * pw + idx] = pattern[idy * pw + idx];
 }

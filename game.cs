@@ -24,7 +24,7 @@ namespace Template {
         OpenCLKernel kernel = new OpenCLKernel(ocl, "device_function");
 
         // create a regular buffer; by default this resides on both the host and the device
-        OpenCLBuffer<short> buffer;
+        OpenCLBuffer<int> buffer = new OpenCLBuffer<int>(ocl, 512 * 512);
         // create an OpenGL texture to which OpenCL can send data
         //OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
@@ -98,7 +98,6 @@ namespace Template {
                     ph = UInt32.Parse(sub[3]);
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
-                    buffer = new OpenCLBuffer<short>(ocl, 32 * pw * ph);
                     kernel.SetArgument(3, pw);
                     kernel.SetArgument(4, ph);
                 }
@@ -116,6 +115,9 @@ namespace Template {
             }
             // swap buffers
             for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
+            kernel.SetArgument(1, pattern);
+            kernel.SetArgument(2, second);
+            second.CopyToDevice();
         }
         // SIMULATE
         // Takes the pattern in array 'second', and applies the rules of Game of Life to produce the next state
@@ -143,27 +145,30 @@ namespace Template {
             // start timer
             timer.Restart();
             // run the simulation, 1 step
+            for (int i = 0; i < buffer.Length; i++) buffer[i] = 0;
             kernel.SetArgument(0, buffer);
-            for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
-            kernel.SetArgument(1, pattern);
-            kernel.SetArgument(2, second);
+            //kernel.SetArgument(1, pattern);
+            //kernel.SetArgument(2, second);
+            buffer.CopyToDevice();
+            //for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
-            long[] workSize = { pw * 32, ph };
+            long[] workSize = { pw, ph };
             //Simulate();
             kernel.Execute(workSize);
             buffer.CopyFromDevice();
-            for (int i = 0; i < buffer.Length; i++)
+            /*for (int i = 0; i < buffer.Length; i++)
             {
                 Console.Write(buffer[i] + ", ");
             }
-            Console.WriteLine();
-            pattern.CopyFromDevice();
-            for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
+            Console.WriteLine();*/
+            //pattern.CopyFromDevice();
+            //second.CopyFromDevice();
+            //for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             // visualize current state
             screen.Clear(0);
             for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
-                    if(GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
+                    screen.Plot(x, y, buffer[x + y * 512]);
             // report performance
             Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
         }
