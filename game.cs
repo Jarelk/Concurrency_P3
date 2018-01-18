@@ -148,16 +148,20 @@ namespace Template {
             // start timer
             timer.Restart();
             // run the simulation, 1 step
-            for (int i = 0; i < buffer.Length; i++) buffer[i] = 0;
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                buffer[i] = 0;
+            }
             kernel.SetArgument(0, buffer);
             //kernel.SetArgument(1, pattern);
            // kernel.SetArgument(2, second);
             second.CopyToDevice();
             buffer.CopyToDevice();
-            //for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
+           // for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
+            //pattern.CopyToDevice();
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
-            long[] workSize = { pw/2, ph };
+            long[] workSize = { pw, ph };
             //Simulate();
             kernel.Execute(workSize);
             buffer.CopyFromDevice();
@@ -170,11 +174,14 @@ namespace Template {
             //second.CopyFromDevice();
             for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             // visualize current state
-            screen.Clear(0);
-            for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
-                    if (GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
-            // report performance
-            Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
+            if(generation > -1)
+            {
+                screen.Clear(0);
+                for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
+                        if (GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
+                // report performance
+                Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
+            }
             //Console.ReadLine();
         }
     }

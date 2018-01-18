@@ -8,19 +8,19 @@ void BitSet(uint x, uint y, uint pw, __global uint* pattern)
 	pattern[y * pw + (x >> 5)] |= 1U << (int)(x & 31); 
 }
 
-__kernel void device_function( __global int* a, __global uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
+__kernel void device_function( __global int* a, __global write_only uint* pattern, __global read_only uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
 {
 	uint idx = get_global_id( 0 );
 	uint idy = get_global_id( 1 );
-	a[idx + idy * pw] = idx + (idy * pw);
+	a[idx + idy * pw] = idx;
 	pattern[idy * pw + idx] = 0;
 	if(idy == 0 || idy == ph - 1) return;
 
-	for(int i = 0; i < 64; i++)
+	for(int i = 0; i < 32; i++)
 	{
-		uint x = (idx * pw) + i;
+		uint x = (idx * 32) + i;
 		uint y = idy;
-		if(x == 0 || x == pw * 32 - 1) continue;
+		if(x == 0 || x == 1727) continue;
 		uint n = GetBit(x - 1, y - 1, pw, second) 
 		+ GetBit(x, y - 1, pw, second) 
 		+ GetBit(x + 1, y - 1, pw, second) 
