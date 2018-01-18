@@ -13,15 +13,14 @@ __kernel void device_function( __global int* a, __global uint* pattern, __global
 	uint idx = get_global_id( 0 );
 	uint idy = get_global_id( 1 );
 	a[idx + idy * pw] = idx + (idy * pw);
-	if(idy == 0 || idy == ph - 1) return;
 	pattern[idy * pw + idx] = 0;
-	uint id = idx + pw * idy;
+	if(idy == 0 || idy == ph - 1) return;
 
-	for(int m = 0; m < 32; m++)
+	for(int i = 0; i < 64; i++)
 	{
-		uint x = (idx * pw) + m;
+		uint x = (idx * pw) + i;
 		uint y = idy;
-		if(x == 0 || x == pw * 32 - 1) return;
+		if(x == 0 || x == pw * 32 - 1) continue;
 		uint n = GetBit(x - 1, y - 1, pw, second) 
 		+ GetBit(x, y - 1, pw, second) 
 		+ GetBit(x + 1, y - 1, pw, second) 
