@@ -148,7 +148,6 @@ namespace Template {
         public void Tick()
         {
             GL.Finish();
-            image = new OpenCLImage<int>(ocl, 512, 512);
             // start timer
             timer.Restart();
             //Initiate work sizes

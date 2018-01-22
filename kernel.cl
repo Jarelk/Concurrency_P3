@@ -26,6 +26,14 @@ __kernel void device_function( __global int* a, __global write_only uint* patter
 		uint x = (idx * 32) + i;
 		uint y = idy;
 		if(x == 0 || x == 1727) continue;
+		#ifdef GLINTEROP
+		if((xoffset <= x) && (x < xoffset + 512) && (yoffset <= y) && (y < yoffset + 512))
+		{
+			int2 posz = (int2)(x - xoffset,y - yoffset);
+			write_imagef( a, posz, (float4)(0.0f, 0.0f, 0.0f, 1.0f ) );
+		}
+		#else
+		#endif
 		uint n = GetBit(x - 1, y - 1, pw, second) 
 		+ GetBit(x, y - 1, pw, second) 
 		+ GetBit(x + 1, y - 1, pw, second) 
