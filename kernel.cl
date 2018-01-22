@@ -1,4 +1,6 @@
-﻿uint GetBit(uint x, uint y, uint pw, __global uint* second)
+﻿#define GLINTEROP
+
+uint GetBit(uint x, uint y, uint pw, __global uint* second)
 {
 	return (second[y * pw + (x >> 5)] >> (int)(x & 31)) & 1U; 
 }
@@ -8,11 +10,14 @@ void BitSet(uint x, uint y, uint pw, __global uint* pattern)
 	pattern[y * pw + (x >> 5)] |= 1U << (int)(x & 31); 
 }
 
-__kernel void device_function( __global int* a, __global write_only uint* pattern, __global read_only uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
+#ifdef GLINTEROP
+__kernel void device_function( write_only image2d_t a, __global write_only uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
+#else
+__kernel void device_function( __global int* a, __global write_only uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
+#endif
 {
 	uint idx = get_global_id( 0 );
 	uint idy = get_global_id( 1 );
-	a[idx + idy * pw] = idx;
 	pattern[idy * pw + idx] = 0;
 	if(idy == 0 || idy == ph - 1) return;
 
@@ -32,8 +37,22 @@ __kernel void device_function( __global int* a, __global write_only uint* patter
 		if ((GetBit(x, y, pw, second) == 1 && n == 2) || n == 3)
 		{
 			BitSet(x, y, pw, pattern);
-			//if((xoffset <= x) && (x < xoffset + 512) && (yoffset <= y) && (y < yoffset + 512)) a[(x - xoffset) + ((y - yoffset) * 512)] = 0xffffff;
+			if((xoffset <= x) && (x < xoffset + 512) && (yoffset <= y) && (y < yoffset + 512))
+			{
+			#ifdef GLINTEROP
+				int2 pos = (int2)(x - xoffset,y - yoffset);
+				write_imagef( a, pos, (float4)(1.0f, 1.0f, 1.0f, 1.0f ) );
+			#else
+				a[(x - xoffset) + ((y - yoffset) * 512)] = 0xffffff;
+			#endif
+			}
 		}
 	}
 	//second[idy * pw + idx] = pattern[idy * pw + idx];
+}
+
+__kernel void refresh_arrays(__global write_only uint* pattern, __global uint* second)
+{
+	uint idz = get_global_id( 0 );
+	second[idz] = pattern[idz];
 }

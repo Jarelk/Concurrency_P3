@@ -16,15 +16,17 @@ namespace Template {
     {
         // screen surface to draw to
         public Surface screen;
-        public bool GLinterop = false;
+        public bool GLinterop = true;
 
         // load the OpenCL program; this creates the OpenCL context
         static OpenCLProgram ocl = new OpenCLProgram("../../kernel.cl");
         // find the kernel named 'device_function' in the program
         OpenCLKernel kernel = new OpenCLKernel(ocl, "device_function");
+        OpenCLKernel secondKernel = new OpenCLKernel(ocl, "refresh_arrays");
+        OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
         // create a regular buffer; by default this resides on both the host and the device
-        OpenCLBuffer<uint> buffer;
+        OpenCLBuffer<int> buffer;
         // create an OpenGL texture to which OpenCL can send data
         //OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
@@ -98,7 +100,7 @@ namespace Template {
                     ph = UInt32.Parse(sub[3]);
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
-                    buffer = new OpenCLBuffer<uint>(ocl, pw * ph);
+                    buffer = new OpenCLBuffer<int>(ocl, 512 * 512);
                     kernel.SetArgument(3, pw);
                     kernel.SetArgument(4, ph);
                 }
@@ -118,9 +120,9 @@ namespace Template {
             for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
             kernel.SetArgument(1, pattern);
             kernel.SetArgument(2, second);
+            secondKernel.SetArgument(0, pattern);
+            secondKernel.SetArgument(1, second);
             second.CopyToDevice();
-            for (uint yz = 0; yz < screen.height; yz++) for (uint xz = 0; xz < screen.width; xz++)
-                    if (GetBit(xz + xoffset, yz + yoffset) == 1) screen.Plot(xz, yz, 0xffffff);
         }
         // SIMULATE
         // Takes the pattern in array 'second', and applies the rules of Game of Life to produce the next state
@@ -145,44 +147,71 @@ namespace Template {
         // Main application entry point: the template calls this function once per frame.
         public void Tick()
         {
+            GL.Finish();
+            image = new OpenCLImage<int>(ocl, 512, 512);
             // start timer
             timer.Restart();
-            // run the simulation, 1 step
-            for (int i = 0; i < buffer.Length; i++)
-            {
-                buffer[i] = 0;
-            }
-            kernel.SetArgument(0, buffer);
-            //kernel.SetArgument(1, pattern);
-           // kernel.SetArgument(2, second);
-            second.CopyToDevice();
-            buffer.CopyToDevice();
-           // for (int i = 0; i < pw * ph; i++) pattern[i] = 0;
-            //pattern.CopyToDevice();
+            //Initiate work sizes
+            long[] workSize = { pw, ph };
+            long[] workSize2 = { pw * ph };
+            //Set kernel arguments
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
-            long[] workSize = { pw, ph };
-            //Simulate();
-            kernel.Execute(workSize);
-            buffer.CopyFromDevice();
-            /*for (int i = 0; i < buffer.Length; i++)
+            // run the simulation, 1 step
+            screen.Clear(0);
+            if (GLinterop)
             {
-                Console.Write(buffer[i] + ", ");
+                //set image as argument
+                kernel.SetArgument(0, image);
+
+                //lock image object
+                kernel.LockOpenGLObject(image.texBuffer);
+
+                //run kernel
+                kernel.Execute(workSize);
+
+                //unlock image object
+                kernel.UnlockOpenGLObject(image.texBuffer);
+
+                secondKernel.Execute(workSize2);
+
             }
-            Console.WriteLine();*/
-            pattern.CopyFromDevice();
-            //second.CopyFromDevice();
-            for (int i = 0; i < pw * ph; i++) second[i] = pattern[i];
-            // visualize current state
-            if(generation > -1)
+            else
             {
-                screen.Clear(0);
+                kernel.SetArgument(0, buffer);
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    buffer[i] = 0;
+                }
+                buffer.CopyToDevice();
+                kernel.Execute(workSize);
+                secondKernel.Execute(workSize2);
+                buffer.CopyFromDevice();
                 for (uint y = 0; y < screen.height; y++) for (uint x = 0; x < screen.width; x++)
-                        if (GetBit(x + xoffset, y + yoffset) == 1) screen.Plot(x, y, 0xffffff);
-                // report performance
-                Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
+                    {
+                        screen.Plot(x, y, buffer[x + y * 512]);
+                    }
             }
+            // visualize current state
+                // report performance
+            Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
             //Console.ReadLine();
+        }
+
+        public void Render()
+        {
+            // use OpenGL to draw a quad using the texture that was filled by OpenCL
+            if (GLinterop)
+            {
+                GL.LoadIdentity();
+                GL.BindTexture(TextureTarget.Texture2D, image.OpenGLTextureID);
+                GL.Begin(PrimitiveType.Quads);
+                GL.TexCoord2(0.0f, 1.0f); GL.Vertex2(-1.0f, -1.0f);
+                GL.TexCoord2(1.0f, 1.0f); GL.Vertex2(1.0f, -1.0f);
+                GL.TexCoord2(1.0f, 0.0f); GL.Vertex2(1.0f, 1.0f);
+                GL.TexCoord2(0.0f, 0.0f); GL.Vertex2(-1.0f, 1.0f);
+                GL.End();
+            }
         }
     }
 
