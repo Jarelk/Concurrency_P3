@@ -83,3 +83,13 @@ __kernel void refresh_arrays(__global write_only uint* pattern, __global uint* s
 	uint idz = get_global_id( 0 );
 	second[idz] = pattern[idz];
 }
+
+__kernel void clear_image(write_only image2d_t a)
+{
+	uint idx = get_global_id( 0 );
+	uint idy = get_global_id( 1 );
+	for(int i = 0; i < 32; i++)
+	{
+		write_imagef(a, (int2)(idx * 32 + i, idy), (float4)(0.0f, 0.0f, 0.0f, 0.0f));
+	}
+}

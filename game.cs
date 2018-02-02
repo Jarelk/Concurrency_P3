@@ -17,12 +17,14 @@ namespace Template {
         // screen surface to draw to
         public Surface screen;
         public bool GLinterop = true;
+        float zoom, scrollValue = 0;
 
         // load the OpenCL program; this creates the OpenCL context
         static OpenCLProgram ocl = new OpenCLProgram("../../kernel.cl");
         // find the kernel named 'device_function' in the program
         OpenCLKernel kernel = new OpenCLKernel(ocl, "device_function");
         OpenCLKernel secondKernel = new OpenCLKernel(ocl, "refresh_arrays");
+        OpenCLKernel imageClearKernel = new OpenCLKernel(ocl, "clear_image");
         OpenCLImage<int> image = new OpenCLImage<int>(ocl, 512, 512);
 
         // create a regular buffer; by default this resides on both the host and the device
@@ -81,6 +83,14 @@ namespace Template {
                 }
             }
             else lastLButtonState = false;
+        }
+
+        public void SetZoom(float mouseWheel)
+        {
+            scrollValue = mouseWheel + 10;
+            if (scrollValue < 1) scrollValue = 1;
+            else if (scrollValue > 20) scrollValue = 20;
+            zoom = scrollValue;
         }
         // minimalistic .rle file reader for Golly files (see http://golly.sourceforge.net)
         public void Init()
@@ -153,6 +163,7 @@ namespace Template {
             //Initiate work sizes
             long[] workSize = { pw, ph };
             long[] workSize2 = { pw * ph };
+            long[] workSize3 = { 16, 512 };
             //Set kernel arguments
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
@@ -161,9 +172,14 @@ namespace Template {
             if (GLinterop)
             {
                 //set image as argument
-                kernel.SetArgument(0, image);
+                imageClearKernel.SetArgument(0, image);
+
+                imageClearKernel.LockOpenGLObject(image.texBuffer);
+                imageClearKernel.Execute(workSize3);
+                imageClearKernel.UnlockOpenGLObject(image.texBuffer);
 
                 //lock image object
+                kernel.SetArgument(0, image);
                 kernel.LockOpenGLObject(image.texBuffer);
 
                 //run kernel
@@ -192,7 +208,7 @@ namespace Template {
                     }
             }
             // visualize current state
-                // report performance
+            // report performance
             Console.WriteLine("generation " + generation++ + ": " + timer.ElapsedMilliseconds + "ms");
             //Console.ReadLine();
         }
