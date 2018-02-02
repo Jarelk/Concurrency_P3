@@ -94,7 +94,7 @@ namespace Template {
             scrollValue += oldValue - mouseWheel;
             oldValue = mouseWheel;
             if (scrollValue < -3) scrollValue = -3;
-            else if (scrollValue > 12) scrollValue = 12;
+            else if (scrollValue > 24) scrollValue = 24;
             zoom = 1 + scrollValue * 0.25f;
         }
         // minimalistic .rle file reader for Golly files (see http://golly.sourceforge.net)
@@ -168,11 +168,11 @@ namespace Template {
             //Initiate work sizes
             long[] workSize = { pw, ph };
             long[] workSize2 = { pw * ph };
-            long[] workSize3 = { 16, 512 };
             //Set kernel arguments
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
             resolution = (int)(zoom * 512);
+            long[] workSize3 = { resolution / 32, resolution };
             kernel.SetArgument(7, resolution);
             // run the simulation, 1 step
             screen.Clear(0);
@@ -185,11 +185,11 @@ namespace Template {
                 }
 
                 //set image as argument
-                //imageClearKernel.SetArgument(0, image);
+                imageClearKernel.SetArgument(0, image);
 
-                //imageClearKernel.LockOpenGLObject(image.texBuffer);
-                //imageClearKernel.Execute(workSize3);
-                //imageClearKernel.UnlockOpenGLObject(image.texBuffer);
+                imageClearKernel.LockOpenGLObject(image.texBuffer);
+                imageClearKernel.Execute(workSize3);
+                imageClearKernel.UnlockOpenGLObject(image.texBuffer);
 
                 //lock image object
                 kernel.SetArgument(0, image);
