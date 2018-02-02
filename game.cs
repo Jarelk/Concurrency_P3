@@ -147,6 +147,7 @@ namespace Template {
         // Main application entry point: the template calls this function once per frame.
         public void Tick()
         {
+            GL.Finish();
             // start timer
             timer.Restart();
             //Initiate work sizes
