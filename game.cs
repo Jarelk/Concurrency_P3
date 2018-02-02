@@ -17,7 +17,7 @@ namespace Template {
         // screen surface to draw to
         public Surface screen;
         public bool GLinterop = true;
-        float zoom, scrollValue = 0;
+        float zoom = 1, scrollValue = 0, oldValue = 0;
 
         // load the OpenCL program; this creates the OpenCL context
         static OpenCLProgram ocl = new OpenCLProgram("../../kernel.cl");
@@ -43,6 +43,10 @@ namespace Template {
         //uint[] second;
         uint pw, ph; // note: pw is in uints; width in bits is 32 this value.
                      // helper function for setting one bit in the pattern buffer
+
+        int resolution = 512;
+        int oldResolution = 512;
+
         void BitSet(uint x, uint y)
         {
             pattern[y * pw + (x >> 5)] |= 1U << (int)(x & 31);
@@ -87,10 +91,11 @@ namespace Template {
 
         public void SetZoom(float mouseWheel)
         {
-            scrollValue = mouseWheel + 10;
-            if (scrollValue < 1) scrollValue = 1;
-            else if (scrollValue > 20) scrollValue = 20;
-            zoom = scrollValue;
+            scrollValue += oldValue - mouseWheel;
+            oldValue = mouseWheel;
+            if (scrollValue < -3) scrollValue = -3;
+            else if (scrollValue > 12) scrollValue = 12;
+            zoom = 1 + scrollValue * 0.25f;
         }
         // minimalistic .rle file reader for Golly files (see http://golly.sourceforge.net)
         public void Init()
@@ -167,16 +172,24 @@ namespace Template {
             //Set kernel arguments
             kernel.SetArgument(5, xoffset);
             kernel.SetArgument(6, yoffset);
+            resolution = (int)(zoom * 512);
+            kernel.SetArgument(7, resolution);
             // run the simulation, 1 step
             screen.Clear(0);
             if (GLinterop)
             {
-                //set image as argument
-                imageClearKernel.SetArgument(0, image);
+                if(resolution != oldResolution)
+                {
+                    image = new OpenCLImage<int>(ocl, resolution, resolution);
+                    oldResolution = resolution;
+                }
 
-                imageClearKernel.LockOpenGLObject(image.texBuffer);
-                imageClearKernel.Execute(workSize3);
-                imageClearKernel.UnlockOpenGLObject(image.texBuffer);
+                //set image as argument
+                //imageClearKernel.SetArgument(0, image);
+
+                //imageClearKernel.LockOpenGLObject(image.texBuffer);
+                //imageClearKernel.Execute(workSize3);
+                //imageClearKernel.UnlockOpenGLObject(image.texBuffer);
 
                 //lock image object
                 kernel.SetArgument(0, image);

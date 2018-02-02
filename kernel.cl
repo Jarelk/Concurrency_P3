@@ -1,12 +1,12 @@
 ﻿#define GLINTEROP
 
 #ifdef GLINTEROP
-void Write_image(write_only image2d_t a, uint bitarray, uint xoffset, uint yoffset, uint x, uint y)
+void Write_image(write_only image2d_t a, uint bitarray, uint xoffset, uint yoffset, uint x, uint y, uint reso)
 #else
 void Write_image(__global int* a, uint bitarray, uint xoffset, uint yoffset, uint x, uint y)
 #endif
 {
-	if(y < yoffset || y >= yoffset + 512 || x < xoffset / 32 || x >= (xoffset + 512 + 31) / 32 ) return;
+	if(y < yoffset || y >= yoffset + reso || x < xoffset / 32 || x >= (xoffset + reso + 31) / 32 ) return;
 	int p = x * 32 - xoffset; int q = (x + 1) * 32 - xoffset;
 	int i = 0;
 	int j = 32;
@@ -14,9 +14,9 @@ void Write_image(__global int* a, uint bitarray, uint xoffset, uint yoffset, uin
 	{
 		i += xoffset % 32;
 	}
-	if(q >= 512)
+	if(q >= reso)
 	{
-		j -= q - 512;
+		j -= q - reso;
 	}
 	while(i < j)
 	{
@@ -25,7 +25,7 @@ void Write_image(__global int* a, uint bitarray, uint xoffset, uint yoffset, uin
 		float z = (float)((bitarray >> i) << 31);
 		write_imagef(a, pos, (float4)(z, z, z, z));
 		#else
-		a[p + i + (y - yoffset) * 512] = (float)((bitarray >> i) << 31) * 0xffffff;
+		a[p + i + (y - yoffset) * reso] = (float)((bitarray >> i) << 31) * 0xffffff;
 		#endif
 		i++;
 	}
@@ -42,7 +42,7 @@ void BitSet(uint x, uint y, uint pw, __global uint* pattern)
 }
 
 #ifdef GLINTEROP
-__kernel void device_function( write_only image2d_t a, __global write_only uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
+__kernel void device_function( write_only image2d_t a, __global write_only uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset, uint reso)
 #else
 __kernel void device_function( __global int* a, __global write_only uint* pattern, __global uint* second, uint pw, uint ph, uint xoffset, uint yoffset)
 #endif
@@ -71,7 +71,7 @@ __kernel void device_function( __global int* a, __global write_only uint* patter
 		}
 	}
 	#ifdef GLINTEROP
-	Write_image(a, pattern[idy * pw + idx], xoffset, yoffset, idx, idy);
+	Write_image(a, pattern[idy * pw + idx], xoffset, yoffset, idx, idy, reso);
 	#else
 	Write_image(a, pattern[idy * pw + idx], xoffset, yoffset, idx, idy);
 	#endif
