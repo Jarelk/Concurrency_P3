@@ -86,7 +86,7 @@ namespace Template {
         public void Init()
         {
             StreamReader sr = new StreamReader("../../data/turing_js_r.rle");
-            uint state = 0, n = 0, x = 0, y = 0;
+            uint state = 0, n = 0, x = 1, y = 1;
             while (true)
             {
                 String line = sr.ReadLine();
@@ -96,8 +96,8 @@ namespace Template {
                 else if (line[pos] == 'x') // header
                 {
                     String[] sub = line.Split(new char[] { '=', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    pw = (UInt32.Parse(sub[1]) + 31) / 32;
-                    ph = UInt32.Parse(sub[3]);
+                    pw = ((UInt32.Parse(sub[1]) + 33) / 32);
+                    ph = UInt32.Parse(sub[3]) + 2;
                     pattern = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     second = new OpenCLBuffer<uint>(ocl, (pw * ph));
                     buffer = new OpenCLBuffer<int>(ocl, 512 * 512);
@@ -110,7 +110,7 @@ namespace Template {
                         if (state == 0) if (c < '0' || c > '9') { state = 1; n = Math.Max(n, 1); } else n = (uint)(n * 10 + (c - '0'));
                         if (state == 1) // expect other character
                         {
-                            if (c == '$') { y += n; x = 0; } // newline
+                            if (c == '$') { y += n; x = 1; } // newline
                             else if (c == 'o') for (int i = 0; i < n; i++) BitSet(x++, y); else if (c == 'b') x += n;
                             state = n = 0;
                         }
@@ -147,7 +147,6 @@ namespace Template {
         // Main application entry point: the template calls this function once per frame.
         public void Tick()
         {
-            GL.Finish();
             // start timer
             timer.Restart();
             //Initiate work sizes
