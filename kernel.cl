@@ -56,7 +56,7 @@ __kernel void device_function( __global int* a, __global write_only uint* patter
 	{
 		uint x = (idx * 32) + i;
 		uint y = idy;
-		if(x == 0 || x == 1727) continue;
+		if(x == 0 || x == 32 * pw - 1) continue;
 		uint n = GetBit(x - 1, y - 1, pw, second) 
 		+ GetBit(x, y - 1, pw, second) 
 		+ GetBit(x + 1, y - 1, pw, second) 

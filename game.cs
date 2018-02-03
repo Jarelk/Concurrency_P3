@@ -73,7 +73,7 @@ namespace Template {
             {
                 if (lastLButtonState)
                 {
-                    int deltax = x - dragXStart, deltay = y - dragYStart;
+                    int deltax = (int)(zoom * (x - dragXStart)), deltay = (int)(zoom * (y - dragYStart));
                     xoffset = (uint)Math.Min(pw * 32 - screen.width, Math.Max(0, offsetXStart - deltax));
                     yoffset = (uint)Math.Min(ph - screen.height, Math.Max(0, offsetYStart - deltay));
                 }
